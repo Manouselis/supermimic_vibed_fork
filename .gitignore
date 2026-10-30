@@ -10,9 +10,13 @@ data/
 # training runs: checkpoints, logs
 logs/
 *.pt
+# exported policy releases stay out of ordinary Git history
+*.safetensors
+checkpoints/
 # rendered videos and recorded trajectories (derived from CC BY-NC-ND LAFAN1 motions)
 *.mp4
 *.npz
 results/analysis/
+results/checkpoint_040000_all_motions_full/
 # third-party paper
 *.pdf
