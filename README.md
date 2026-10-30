@@ -1,11 +1,11 @@
 # SuperMimic reproduction on Isaac Lab 3 (kit-less, MuJoCo-Warp)
 
-## Aletta fork: laptop policy release
+## Fork release: laptop-trained G1 policy
 
 Maintained by **Pantelis Manouselis**, based on Chong Zhang's independent implementation.
 Our checkpoint **40,000** reached mean normalized return **0.8696**, with **0/40 failed clips**.
 It is the strongest of 11 locally evaluated checkpoints. These are familiar training motions,
-not a held-out test or physical Aletta validation.
+not a held-out test or physical-robot validation.
 
 ![Local checkpoint comparison](docs/media/checkpoint_comparison.png)
 

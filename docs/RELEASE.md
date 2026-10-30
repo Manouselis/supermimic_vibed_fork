@@ -16,7 +16,7 @@ This fork's laptop run produced checkpoint **40,000**, the strongest of **11** e
 - Nominal friction 1.0, no observation/action noise or domain randomization during evaluation.
 - Return divides accumulated reward by the complete clip's maximum reward. It is not position accuracy.
 - Failure checks pelvis-height error above 0.25 m or a dimensionless vertical-orientation mismatch above 0.8.
-- Familiar-motion coverage, not unseen-motion generalization. No physical Aletta validation. Self-collisions are disabled.
+- Familiar-motion coverage, not unseen-motion generalization. No physical-robot validation. Self-collisions are disabled.
 
 ## Weights and motion examples
 
