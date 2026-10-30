@@ -14,7 +14,8 @@ not a held-out test or physical Aletta validation.
 [Attribution and licensing status](docs/RELEASE_LICENSES.md)
 
 The compact policy release includes its normalization buffers and preserves local checkpoint usage.
-Weights and motion previews use CC BY-NC-ND 4.0. The code remains MIT.
+Code and the publisher's rights in the weights are MIT. LAFAN1 data and reference-motion
+previews retain separate source terms. See the licensing notes.
 The RTX PRO 6000 results below describe the **upstream author's run**, not this laptop run.
 
 ## Upstream reproduction
