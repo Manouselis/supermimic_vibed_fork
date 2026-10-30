@@ -136,7 +136,7 @@ Checkpoints are written every 2000 iterations to `logs/<run>/`; the eval watcher
 published by Pantelis Manouselis, include evaluation results and motion videos.
 This separate training run reached normalized return **0.8696**, with **0/40 failed training clips**.
 The inference-only release uses Safetensors. Follow the
-[compatible fork's loading instructions](https://github.com/Manouselis/supermimic_vibed_fork/blob/2e264eaf273232f3bde48ea848e2e6a45949fc73/docs/RELEASE.md).
+[compatible fork's loading instructions](https://github.com/Manouselis/supermimic_vibed_fork/blob/8bdf60a74c700720817669539e160f4f846b0cf4/docs/RELEASE.md).
 The local `.pt` workflow above is unchanged.
 
 ## Result (LAFAN1, 40 clips, one RTX PRO 6000 Blackwell)
