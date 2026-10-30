@@ -18,9 +18,19 @@ This fork's laptop run produced checkpoint **40,000**, the strongest of **11** e
 - Failure checks pelvis-height error above 0.25 m or a dimensionless vertical-orientation mismatch above 0.8.
 - Familiar-motion coverage, not unseen-motion generalization. No physical Aletta validation. Self-collisions are disabled.
 
-## Publication status
+## Weights and motion examples
 
-The inference package and motion previews are being prepared for Hugging Face. Public redistribution of the LAFAN1-derived weights and rendered reference motions needs a resolved basis first. See [licensing review](RELEASE_LICENSES.md). The code and numerical evaluation results can be reviewed independently.
+[Hugging Face model](https://huggingface.co/pantelismanouselis/g1-supermimic-lafan1) · [Files](https://huggingface.co/pantelismanouselis/g1-supermimic-lafan1/tree/main) · [Licenses and credits](RELEASE_LICENSES.md)
+
+Solid robot: policy. Blue ghost: reference. These are **12-second excerpts**, not complete evaluations.
+
+| Walking | Jumping | Fall and get up |
+|---|---|---|
+| ![Walking](https://huggingface.co/pantelismanouselis/g1-supermimic-lafan1/resolve/main/media/walk.gif) | ![Jumping](https://huggingface.co/pantelismanouselis/g1-supermimic-lafan1/resolve/main/media/jump.gif) | ![Fall and get up](https://huggingface.co/pantelismanouselis/g1-supermimic-lafan1/resolve/main/media/getup.gif) |
+| [MP4](https://huggingface.co/pantelismanouselis/g1-supermimic-lafan1/resolve/main/media/walk.mp4), walk1_subject1, 0–12 s | [MP4](https://huggingface.co/pantelismanouselis/g1-supermimic-lafan1/resolve/main/media/jump.mp4), jumps1_subject2, 12–24 s | [MP4](https://huggingface.co/pantelismanouselis/g1-supermimic-lafan1/resolve/main/media/getup.mp4), fallAndGetUp2_subject3, 10–22 s |
+
+[Complete jump recording, about 4 minutes 4 seconds](https://huggingface.co/pantelismanouselis/g1-supermimic-lafan1/resolve/main/media/jumps1_subject2_full.mp4).
+The jump and get-up examples show noticeable tracking offsets. Completion does not mean perfect imitation.
 
 ## Use the compact policy
 
@@ -34,16 +44,16 @@ docker exec supermimic python supermimic/evaluate.py \
   --ckpt checkpoints/g1-lafan1-040000
 ```
 
-Once a model repository is published, download its pinned tag or exact Hub commit using:
+Download the versioned release using:
 
 ```bash
 python3 -m pip install 'huggingface_hub>=0.33.4,<2'
-python3 tools/download_policy.py OWNER/MODEL \
-  --revision RELEASE_TAG_OR_COMMIT \
+python3 tools/download_policy.py pantelismanouselis/g1-supermimic-lafan1 \
+  --revision v1.0.0 \
   --output checkpoints/g1-lafan1-040000
 ```
 
-`OWNER/MODEL` and the revision must identify an actual published release. This page does not claim public weights are already available. The downloader verifies policy/config SHA-256 hashes. A trusted pinned Hub revision establishes which manifest you intended to download.
+The downloader verifies policy/config SHA-256 hashes. For an immutable reference, use the exact Hub commit from the model's file history instead of the tag. Use the compatible Git commit in `config.json` when reproducing results.
 
 The artifact includes the motion encoder, action decoder and normalization buffers. It excludes the world model, critic, optimizer and replay buffer. **Inference only, not a training-resume checkpoint.**
 

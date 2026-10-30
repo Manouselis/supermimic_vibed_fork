@@ -9,11 +9,12 @@ not a held-out test or physical Aletta validation.
 
 ![Local checkpoint comparison](docs/media/checkpoint_comparison.png)
 
-[Results, inference loading and release preparation](docs/RELEASE.md) ·
+[Hugging Face weights](https://huggingface.co/pantelismanouselis/g1-supermimic-lafan1) ·
+[Results, videos and evaluation instructions](docs/RELEASE.md) ·
 [Attribution and licensing status](docs/RELEASE_LICENSES.md)
 
-The compact policy loader supports tensor-only Hugging Face releases without changing local
-checkpoint usage. Public weights and new motion previews are pending the licensing review.
+The compact policy release includes its normalization buffers and preserves local checkpoint usage.
+Weights and motion previews use CC BY-NC-ND 4.0. The code remains MIT.
 The RTX PRO 6000 results below describe the **upstream author's run**, not this laptop run.
 
 ## Upstream reproduction

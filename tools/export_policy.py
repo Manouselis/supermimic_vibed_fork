@@ -81,6 +81,7 @@ def export(checkpoint: Path, output: Path, asset_root: Path):
         "dataset": {"repo_id": "lvhaidong/LAFAN1_Retargeting_Dataset", "source_fps": 30, "control_fps": 50,
                     "motion_sha256": motions, "license": "Source LAFAN1: CC BY-NC-ND 4.0. See release licensing notes."},
     }
+    config["training"]["planned_iterations"] = config["training"].pop("iterations", None)
     (output / "config.json").write_text(json.dumps(config, indent=2) + "\n")
     manifest = {n: sha256(output / n) for n in ["policy.safetensors", "config.json"]}
     (output / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
