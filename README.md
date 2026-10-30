@@ -1,7 +1,25 @@
 # SuperMimic reproduction on Isaac Lab 3 (kit-less, MuJoCo-Warp)
 
+## Aletta fork: laptop policy release
+
+Maintained by **Pantelis Manouselis**, based on Chong Zhang's independent implementation.
+Our checkpoint **40,000** reached mean normalized return **0.8696**, with **0/40 failed clips**.
+It is the strongest of 11 locally evaluated checkpoints. These are familiar training motions,
+not a held-out test or physical Aletta validation.
+
+![Local checkpoint comparison](docs/media/checkpoint_comparison.png)
+
+[Results, inference loading and release preparation](docs/RELEASE.md) ·
+[Attribution and licensing status](docs/RELEASE_LICENSES.md)
+
+The compact policy loader supports tensor-only Hugging Face releases without changing local
+checkpoint usage. Public weights and new motion previews are pending the licensing review.
+The RTX PRO 6000 results below describe the **upstream author's run**, not this laptop run.
+
+## Upstream reproduction
+
 **Unofficial** reproduction of *SuperMimic: Scaling Humanoid Whole-Body Control with One Differentiable World
-Model* (arXiv 2610.28480) — no official code is released, so everything here is implemented from
+Model* (arXiv 2610.28480), independently implemented from
 the paper. Target experiment: the controlled LAFAN1 comparison (Fig. 4a): 40 G1-retargeted LAFAN1
 clips (2.45 h), one GPU; the paper reaches evaluation normalized return 0.82 after 1.2 h on an H100.
 

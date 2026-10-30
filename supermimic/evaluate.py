@@ -39,6 +39,7 @@ from supermimic.kinematics import G1Kinematics
 from supermimic.mdp import MAX_STEP_REWARD, OBS_DIM, MDP
 from supermimic.motion import MotionLib
 from supermimic.networks import Policy
+from supermimic.checkpoint import load_checkpoint
 from supermimic.robot import default_joint_pos_list
 
 torch.backends.cuda.matmul.allow_tf32 = True
@@ -100,7 +101,7 @@ sim_cfg = make_sim(dev, args)
 with launch_simulation(sim_cfg, args):
     env = TrackingSim(sim_cfg, C, motion, mdp, eval_mode=True)
     if args.ckpt:
-        ck = torch.load(args.ckpt, map_location=dev)
+        ck = load_checkpoint(args.ckpt, dev)
         res = evaluate(env, ck, args.record)
         print(json.dumps({k: v for k, v in res.items() if k != "per_clip"}, indent=1))
         sys.exit(0)
@@ -116,7 +117,7 @@ with launch_simulation(sim_cfg, args):
         todo = [c for c in todo if (int(os.path.basename(c)[5:11]) // 2000) % args.every == 0]
         for c in todo:
             it = int(os.path.basename(c)[5:11])
-            ck = torch.load(c, map_location=dev)
+            ck = load_checkpoint(c, dev)
             t0 = time.time()
             res = evaluate(env, ck)
             line = f"{it},{ck['wall_time'] / 3600:.4f},{ck['saved_at']},{time.strftime('%Y-%m-%d %H:%M:%S')},{res['norm_return']:.4f},{res['norm_return_framew']:.4f},{res['n_failed']},{'|'.join(res['failed'])}\n"
