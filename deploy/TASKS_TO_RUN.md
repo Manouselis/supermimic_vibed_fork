@@ -12,7 +12,8 @@ All commands below are diagnostic. They do not take control of the G1.
 4. On the laptop, run the inventory, using the actual address:
 
 ```bash
-cd /home/pantelis/work_ws/humanoid_ws/src/supermimic_thor_deploy
+# Laptop: replace this with your local deployment checkout.
+cd /path/to/supermimic_vibed_fork
 bash deploy/check_thor.sh USER@NEW_THOR_IP
 ```
 
@@ -22,12 +23,7 @@ GPU operation, SDK availability and interface names before installing anything.
 
 ## 2. Transfer code and the prepared bundle
 
-The branch is local until explicitly published. Once ready to transfer it through Git:
-
-```bash
-# Laptop
-git push -u origin feature/thor-deployment-prep
-```
+Use the published `feature/thor-deployment-prep` branch.
 
 On Thor, clone a separate checkout, or use an existing clean checkout after reviewing `git status`:
 
