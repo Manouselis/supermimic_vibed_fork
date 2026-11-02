@@ -20,3 +20,7 @@ results/analysis/
 results/checkpoint_040000_all_motions_full/
 # third-party paper
 *.pdf
+
+# Portable deployment bundles and local diagnostics
+deploy/artifacts/
+deploy/runs/

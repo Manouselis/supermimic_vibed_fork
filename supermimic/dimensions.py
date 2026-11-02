@@ -1,2 +1,6 @@
 STATE_DIM = 71
 XI_DIM = 33
+
+NUM_J = 29
+OBS_DIM = 99
+INV_DIM = 1 + 6 + 3 + 3 + NUM_J + NUM_J

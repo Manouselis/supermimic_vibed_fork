@@ -8,7 +8,10 @@ import os
 import numpy as np
 import torch
 
-from .kinematics import G1Kinematics
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .kinematics import G1Kinematics
 from .rotations import mat_to_6d, quat_slerp, quat_to_mat, so3_log, yaw_mat
 
 CONTROL_DT = 0.02
@@ -16,7 +19,7 @@ BIN_FRAMES = 50  # 1 s bins for return-based reset sampling
 
 
 class MotionLib:
-    def __init__(self, files: list[str], kin: G1Kinematics, device: str, src_fps: float = 30.0):
+    def __init__(self, files: list[str], kin: G1Kinematics | None, device: str, src_fps: float = 30.0):
         self.device = device
         self.names = [os.path.splitext(os.path.basename(f))[0] for f in files]
         ps, qs, js = [], [], []
@@ -57,13 +60,15 @@ class MotionLib:
         cat = lambda xs: torch.cat(xs).to(device)  # noqa: E731
         self.root_p, self.root_R, self.root_v, self.root_w = cat(root_p), cat(root_R), cat(root_v), cat(root_w)
         self.q, self.qd = cat(jq), cat(jqd)
-        with torch.no_grad():
-            bp, bR, bv, bw = [], [], [], []
-            for s in range(0, self.num_frames, 65536):
-                e = min(s + 65536, self.num_frames)
-                out = kin.forward(self.root_p[s:e], self.root_R[s:e], self.root_v[s:e], self.root_w[s:e], self.q[s:e], self.qd[s:e])
-                bp.append(out[0]), bR.append(out[1]), bv.append(out[2]), bw.append(out[3])
-            self.body_p, self.body_R, self.body_v, self.body_w = torch.cat(bp), torch.cat(bR), torch.cat(bv), torch.cat(bw)
+        # Deployment only needs reference features, not body FK or simulator assets.
+        if kin is not None:
+            with torch.no_grad():
+                bp, bR, bv, bw = [], [], [], []
+                for s in range(0, self.num_frames, 65536):
+                    e = min(s + 65536, self.num_frames)
+                    out = kin.forward(self.root_p[s:e], self.root_R[s:e], self.root_v[s:e], self.root_w[s:e], self.q[s:e], self.qd[s:e])
+                    bp.append(out[0]), bR.append(out[1]), bv.append(out[2]), bw.append(out[3])
+                self.body_p, self.body_R, self.body_v, self.body_w = torch.cat(bp), torch.cat(bR), torch.cat(bv), torch.cat(bw)
         # per-frame static goal parts: q, qd, root velocities in the root frame
         Rt = self.root_R.transpose(-1, -2)
         self.root_v_local = (Rt @ self.root_v.unsqueeze(-1)).squeeze(-1)
@@ -87,7 +92,7 @@ class MotionLib:
             self.frame_bin[s:e] = b
 
     @staticmethod
-    def from_dir(path: str, kin: G1Kinematics, device: str) -> MotionLib:
+    def from_dir(path: str, kin: G1Kinematics | None, device: str) -> MotionLib:
         files = sorted(glob.glob(os.path.join(path, "*.csv")))
         return MotionLib(files, kin, device)
 

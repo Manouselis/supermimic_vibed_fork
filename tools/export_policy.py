@@ -39,7 +39,7 @@ def export(checkpoint: Path, output: Path, asset_root: Path):
     output.mkdir(parents=True, exist_ok=False)
     save_file(state, str(output / "policy.safetensors"), metadata={"format": "pt"})
     # Read the ordered names without importing the simulator-dependent robot module.
-    tree = ast.parse((ROOT / "supermimic/robot.py").read_text())
+    tree = ast.parse((ROOT / "supermimic/g1_spec.py").read_text())
     joints = next(ast.literal_eval(n.value) for n in tree.body if isinstance(n, ast.Assign)
                   and any(isinstance(t, ast.Name) and t.id == "G1_JOINT_NAMES" for t in n.targets))
     versions = {}
@@ -48,7 +48,7 @@ def export(checkpoint: Path, output: Path, asset_root: Path):
             versions[name] = importlib.metadata.version(name)
         except importlib.metadata.PackageNotFoundError:
             versions[name] = "not recorded by installed package metadata"
-    code_files = ["networks.py", "mdp.py", "motion.py", "robot.py", "rotations.py", "kinematics.py", "env.py"]
+    code_files = ["networks.py", "mdp.py", "motion.py", "robot.py", "g1_spec.py", "dimensions.py", "rotations.py", "kinematics.py", "env.py"]
     assets = {}
     for name in ["g1_description/g1_29dof_rev_1_0.urdf", "g1_description/g1_29dof.xml"]:
         p = asset_root / name

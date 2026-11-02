@@ -1,0 +1,102 @@
+{
+  "recorded_at_utc": "2026-11-02T15:08:04.516902+00:00",
+  "scope": "Local x86_64 laptop tests only. No Thor or physical robot connected.",
+  "automated_tests": {
+    "passed": 23,
+    "skipped": 0,
+    "command": "python -m unittest -v tools.test_deployment tools.test_policy_release; ORIGINAL_CHECKPOINT set"
+  },
+  "simulation": {
+    "norm_return": 0.8686966300010681,
+    "norm_return_framew": 0.8698614835739136,
+    "n_failed": 0,
+    "failed": [],
+    "per_clip": {
+      "dance1_subject1": 0.8722,
+      "dance1_subject2": 0.8307,
+      "dance1_subject3": 0.8982,
+      "dance2_subject1": 0.8539,
+      "dance2_subject2": 0.8443,
+      "dance2_subject3": 0.8891,
+      "dance2_subject4": 0.8343,
+      "dance2_subject5": 0.8679,
+      "fallAndGetUp1_subject1": 0.8339,
+      "fallAndGetUp1_subject4": 0.8401,
+      "fallAndGetUp1_subject5": 0.8102,
+      "fallAndGetUp2_subject2": 0.8682,
+      "fallAndGetUp2_subject3": 0.8396,
+      "fallAndGetUp3_subject1": 0.8458,
+      "fight1_subject2": 0.8412,
+      "fight1_subject3": 0.8542,
+      "fight1_subject5": 0.8669,
+      "fightAndSports1_subject1": 0.8375,
+      "fightAndSports1_subject4": 0.8722,
+      "jumps1_subject1": 0.8619,
+      "jumps1_subject2": 0.8456,
+      "jumps1_subject5": 0.8476,
+      "run1_subject2": 0.8707,
+      "run1_subject5": 0.8496,
+      "run2_subject1": 0.8555,
+      "run2_subject4": 0.835,
+      "sprint1_subject2": 0.8502,
+      "sprint1_subject4": 0.8652,
+      "walk1_subject1": 0.926,
+      "walk1_subject2": 0.9028,
+      "walk1_subject5": 0.8969,
+      "walk2_subject1": 0.8872,
+      "walk2_subject3": 0.9002,
+      "walk2_subject4": 0.9338,
+      "walk3_subject1": 0.9177,
+      "walk3_subject2": 0.8983,
+      "walk3_subject3": 0.8395,
+      "walk3_subject4": 0.9208,
+      "walk3_subject5": 0.8845,
+      "walk4_subject1": 0.9582
+    },
+    "deployment_adapter_max_abs_error": {
+      "observation": 0.0,
+      "action": 0.0,
+      "target": 0.0
+    },
+    "physical_robot_tested": false
+  },
+  "cpu_benchmark": {
+    "inference": {
+      "samples": 300,
+      "mean_ms": 1.206294413350406,
+      "p50_ms": 1.194935499370331,
+      "p95_ms": 1.2784418506271322,
+      "max_ms": 1.4330859994515777,
+      "over_20ms": 0
+    },
+    "bundle_and_session_load_s": 2.1784614900007,
+    "device": "cpu",
+    "precision": "fp32",
+    "inputs": "perfect reference-state feedback, not hardware"
+  },
+  "source_release_parity": {
+    "tensors_and_normalization_buffers_identical": true,
+    "cpu_and_cuda_max_action_difference": 0.0,
+    "cases": [
+      "zero",
+      "normalization_scaled",
+      "reference_states"
+    ]
+  },
+  "reference_start_scan": {
+    "clips": 40,
+    "minimum_initial_joint_speed_max_rad_s": 1.8699
+  },
+  "hardware": {
+    "tested": false,
+    "motor_publisher_implemented": false,
+    "read_only_sdk_transport": "Mocked tests only; actual DDS untested",
+    "thor_software_versions": "Unverified"
+  },
+  "runtime": {
+    "python": "3.12 (local existing simulator image)",
+    "torch": "2.11.0+cu130",
+    "numpy": "2.5.1",
+    "safetensors": "0.8.0"
+  }
+}

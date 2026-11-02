@@ -27,6 +27,9 @@ parser.add_argument("--ckpt", type=str, default=None, help="evaluate one checkpo
 parser.add_argument("--record", type=str, default=None, help="save trajectories (npz) for rendering")
 parser.add_argument("--motion_dir", type=str, default=os.path.join(REPO, "data", "lafan1_g1"))
 parser.add_argument("--every", type=int, default=1, help="evaluate every n-th checkpoint")
+parser.add_argument("--deployment-check", action="store_true",
+                    help="Use the receive-only deployment adapter in simulation and compare every step with the original pipeline")
+parser.add_argument("--result-json", type=str, help="Save a single-checkpoint result to a NEW JSON file")
 add_launcher_args(parser)
 args = parser.parse_args()
 
@@ -58,6 +61,14 @@ def evaluate(env: TrackingSim, ck: dict, record: str | None = None) -> dict:
     pi = Policy(OBS_DIM, 73 * K, hist=Hh).to(dev)
     pi.load_state_dict(ck["pi"])
     pi.eval()
+    adapter = None
+    adapter_errors = {"observation": 0.0, "action": 0.0, "target": 0.0}
+    if args.deployment_check:
+        from deploy.runtime import PolicyRunner
+        source = args.ckpt
+        if source is None:
+            raise ValueError("--deployment-check requires --ckpt")
+        adapter = PolicyRunner(source, env.default_q, env.alpha, dev)
     ids = torch.arange(C, device=dev)
     env.done_eval[:] = False
     env.failed_eval[:] = False
@@ -72,6 +83,16 @@ def evaluate(env: TrackingSim, ck: dict, record: str | None = None) -> dict:
         o = mdp.obs(S, env.a_prev, env.xi, env.f)
         hist = o.unsqueeze(1).repeat(1, Hh, 1) if hist is None else torch.cat((hist[:, 1:], o.unsqueeze(1)), 1)
         a = pi(hist, motion.goal(env.f, K))
+        if adapter is not None:
+            # Feed only hardware-observable quantities: no root position, velocity or privileged xi.
+            p, R, v, w, q, qd = S
+            gyro_body = (R.transpose(-1, -2) @ w.unsqueeze(-1)).squeeze(-1)
+            aa, target, ao = adapter.step(q, qd, R, gyro_body, motion.root_R[env.f], motion.goal(env.f, K))
+            expected_target = env.default_q + env.alpha * a
+            for name, left, right in [("observation", ao, o), ("action", aa, a), ("target", target, expected_target)]:
+                torch.testing.assert_close(left, right, rtol=1e-5, atol=1e-5)
+                adapter_errors[name] = max(adapter_errors[name], float((left - right).abs().max()))
+            a = aa  # closed-loop simulator actually uses the deployment adapter's action
         alive = ~env.done_eval.clone()
         if record:
             from supermimic.rotations import mat_to_quat
@@ -90,6 +111,9 @@ def evaluate(env: TrackingSim, ck: dict, record: str | None = None) -> dict:
         "failed": [motion.names[i] for i in env.failed_eval.nonzero().flatten().tolist()],
         "per_clip": {motion.names[i]: round(norm[i].item(), 4) for i in range(C)},
     }
+    if adapter is not None:
+        res["deployment_adapter_max_abs_error"] = adapter_errors
+        res["physical_robot_tested"] = False
     if record:
         np.savez_compressed(record, names=np.array(motion.names), **{k: torch.stack(v).numpy() for k, v in traj.items()},
                             ref_root_p=motion.root_p.cpu().numpy(), ref_root_R=motion.root_R.cpu().numpy(), ref_q=motion.q.cpu().numpy(),
@@ -103,6 +127,12 @@ with launch_simulation(sim_cfg, args):
     if args.ckpt:
         ck = load_checkpoint(args.ckpt, dev)
         res = evaluate(env, ck, args.record)
+        if args.result_json:
+            from pathlib import Path
+            result_path = Path(args.result_json)
+            result_path.parent.mkdir(parents=True, exist_ok=True)
+            with result_path.open("x") as stream:
+                json.dump(res, stream, indent=2)
         print(json.dumps({k: v for k, v in res.items() if k != "per_clip"}, indent=1))
         sys.exit(0)
     out_csv = os.path.join(args.run_dir, "eval.csv")

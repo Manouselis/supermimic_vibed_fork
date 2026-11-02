@@ -5,7 +5,7 @@ from __future__ import annotations
 import torch
 import torch.nn as nn
 
-from .mdp import INV_DIM, NUM_J, XI_DIM, invariant_features
+from .dimensions import INV_DIM, NUM_J, XI_DIM
 from .rotations import so3_exp, yaw_mat
 
 
@@ -77,6 +77,8 @@ class WorldModel(nn.Module):
         self.out_norm = RunningNorm(WM_OUT, eps=1e-4)
 
     def inputs(self, S, a, xi_n):
+        from .mdp import invariant_features
+
         return torch.cat((invariant_features(S), a, xi_n), -1)
 
     @staticmethod

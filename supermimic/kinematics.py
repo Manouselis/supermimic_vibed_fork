@@ -11,7 +11,7 @@ import mujoco
 import numpy as np
 import torch
 
-from .robot import G1_JOINT_NAMES, MJCF_PATH, TRACKED_BODIES
+from .g1_spec import G1_JOINT_NAMES, MJCF_PATH, TRACKED_BODIES
 from .rotations import axis_angle_to_mat, quat_to_mat
 
 
