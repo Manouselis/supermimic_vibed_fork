@@ -22,3 +22,15 @@ isolated from the network. Detailed results: [verification.json](verification.js
 Hardware packet reception, IMU/joint conventions, model/payload agreement and Thor timing remain
 unverified. Stationary pose checks do not establish the reference's initial velocities. Motor
 execution, startup transition, controller handover and safe stopping are not implemented.
+
+## Docker update
+
+- The separate Dockerfile built successfully on the laptop with the existing x86 PyTorch base.
+  The pinned production NVIDIA ARM64 base manifest exists. Its Thor build/GPU compatibility is untested.
+- **33 tests passed**, including 10 wrapper/isolation tests and all 23 policy/deployment tests.
+- Real bundle checking and CPU/CUDA inference passed through the read-only, non-root, network-isolated wrapper.
+- Native SDK CRC and receive-only DDS startup passed on isolated loopback with native CycloneDDS 0.10.5
+  and Python bindings 0.10.2. Native 0.10.2 crashed with the SDK XML configuration on this test system.
+- Unitree is installed editable **inside the image** so its packaged native CRC libraries remain available.
+- Test-only temporary storage permits mock executable scripts. Production runs retain noexec temporary storage.
+- No host packages, drivers, Docker daemon configuration or robot services were modified.

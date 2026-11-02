@@ -20,6 +20,9 @@ No generic Unitree locomotion observation/action scales are substituted for this
 
 ## Supported now
 
+- A separate custom Docker image contains all deployment dependencies. Host Python/CUDA packages stay unchanged.
+- Offline containers have no networking. Receive-only DDS requires explicit host-network access.
+
 - Verified bundle creation, including weights, normalization buffers, all 40 reference clips and model limits.
 - Standalone PyTorch inference. Existing training/evaluation imports remain compatible.
 - Source/export tensor comparison, original/deployment feature/action parity and simulator adapter check.
@@ -54,6 +57,7 @@ Shadow also does not test balance or tracking, because its actions are never app
 
 - [Unitree G1 low-level SDK example, pinned revision](https://github.com/unitreerobotics/unitree_sdk2_python/blob/814556d15970dd2ecf1c9984e845ca02ab07e206/example/g1/low_level/g1_low_level_example.py): joint order, PR/AB, LowState, 2 ms example command loop. **Do not run it as a diagnostic**, because it releases controllers and moves joints.
 - [Unitree G1 deployment config](https://github.com/unitreerobotics/unitree_rl_gym/blob/276801e46c5d433564f24658bac64f254b7d2d4b/deploy/deploy_real/configs/g1.yaml) and [runner](https://github.com/unitreerobotics/unitree_rl_gym/blob/276801e46c5d433564f24658bac64f254b7d2d4b/deploy/deploy_real/deploy_real.py): pelvis IMU, wxyz and SDK feedback usage. Its locomotion policy is different from ours.
+- [NVIDIA PyTorch 26.03](https://docs.nvidia.com/deeplearning/frameworks/pytorch-release-notes/rel-26-03.html): candidate CUDA 13.2 / Ubuntu 24.04 base. ARM64 manifest pinned in our Dockerfile; compatibility with the actual Thor driver still needs checking.
 - [NVIDIA JetPack](https://developer.nvidia.com/embedded/jetpack): Thor uses the Arm/SBSA software stack. Inspect actual versions before selecting packages.
 - [Our released policy](../docs/RELEASE.md), `mdp.py`, `motion.py`, `networks.py`, `g1_spec.py` and `env.py`: exact policy/training contract.
 

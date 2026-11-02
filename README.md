@@ -1,6 +1,6 @@
 # SuperMimic reproduction on Isaac Lab 3 (kit-less, MuJoCo-Warp)
 
-**G1 / Thor preparation:** [receive-only deployment tools](deploy/README.md) and
+**G1 / Thor preparation:** [RL explanation and isolated Docker deployment](deploy/README.md) and
 [next-session checklist](deploy/TASKS_TO_RUN.md). No hardware motor-command path is enabled.
 
 ## Fork release: laptop-trained G1 policy

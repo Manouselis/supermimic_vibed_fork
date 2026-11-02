@@ -1,0 +1,17 @@
+.git
+.cache
+.venv*
+**/__pycache__
+**/*.pyc
+data
+logs
+results
+IsaacLab
+checkpoints
+deploy/artifacts
+deploy/runs
+docs/media
+*.pt
+*.safetensors
+*.mp4
+*.npz

@@ -58,42 +58,52 @@ python3 deploy/inspect_host.py
 Stop if checksums fail or `deploy/artifacts/g1-lafan1-040000` already contains a different bundle.
 Do not overwrite an existing deployment or reuse its configuration without review.
 
-## 3. Select the supported Python runtime
+## 3. Build our Docker image on Thor
 
-1. Use the inventory to find a working Thor-compatible Torch installation. Do not copy the laptop's
-   x86 Docker image or replace system CUDA. If Torch is missing/broken, let us choose its installation
-   from the verified OS/JetPack versions first.
-2. Create an isolated environment that can reuse that compatible installation:
+Nothing is installed into the host Python environment. Do not run host pip/apt installs or create a
+host venv. The image contains PyTorch, CycloneDDS, SDK2 and this application.
 
-```bash
-python3 -m venv --system-site-packages .venv-thor
-source .venv-thor/bin/activate
-python -m pip install -r deploy/requirements.txt
-python -m deploy.run inspect
-python -m deploy.run check
-python -m deploy.run benchmark --samples 300
-```
-
-`check` must complete with all 40 clips. Benchmark reports bundle/session loading separately from warm
-inference after 30 warm-up calls. Its `over_20ms` must be zero before shadow.
-CPU is the default. Test CUDA separately only if the inventory's CUDA operation succeeds:
+1. Review the read-only inventory. Check the actual ARM64 architecture, JetPack/L4T and driver against
+   the candidate NVIDIA CUDA 13.2 base. If they differ, select a compatible image before building.
+2. Check existing Docker access. NVIDIA container support is additionally needed for `--gpu`:
 
 ```bash
-python -m deploy.run --device cuda:0 benchmark --samples 300
+cd ~/supermimic_thor_deploy
+docker info
+bash deploy/docker/build.sh
+bash deploy/docker/run.sh inspect
+bash deploy/docker/run.sh check
+bash deploy/docker/run.sh benchmark --samples 300
 ```
 
-3. Confirm the **existing** SDK2/CycloneDDS imports in this environment. If absent, stop and install
-   the official SDK against the inspected system libraries. No SDK motion example needs to be run.
+The script builds **our** `supermimic-g1-thor:dev` image on ARM64, with a pinned NVIDIA PyTorch base
+and pinned SDK/DDS commits. It does not touch the laptop simulator image or default robot services.
+The base is a multi-GB download. Confirm adequate storage and internet access first.
+If Docker or NVIDIA container support is missing, stop and review the prerequisite rather than
+changing the host setup automatically.
+
+`check` must report all 40 clips. Benchmark reports bundle/session loading and warm inference after
+30 warm-up calls. `over_20ms` must be zero before shadow. CPU is the default.
+
+3. If GPU access is desired, test a real CUDA operation inside our image, then benchmark:
+
+```bash
+bash deploy/docker/run.sh --gpu inspect
+bash deploy/docker/run.sh --gpu --device cuda:0 benchmark --samples 300
+```
+
+Do not upgrade the host driver to make a guessed image work. Choose the image to match the reviewed host.
+A reviewed alternative can be supplied with `THOR_BASE_IMAGE=IMAGE bash deploy/docker/build.sh`.
 
 ## 4. Capture feedback without inference
 
 Identify the Thor interface connected to the robot from the inventory. Replace `ACTUAL_INTERFACE`:
 
 ```bash
-python -m deploy.run capture --interface ACTUAL_INTERFACE --seconds 10
+bash deploy/docker/run.sh --robot capture --interface ACTUAL_INTERFACE --seconds 10
 ```
 
-Review the new `deploy/runs/.../report.json` and `samples.jsonl`:
+Review the new host `deploy/runs/.../report.json` and `samples.jsonl` (the same directory is `/runs/` inside the container):
 
 - Valid CRCs and progressing ticks, no stale feedback or long sample gaps.
 - Correct motor count/order and PR feedback (`mode_pr=0`).
@@ -114,10 +124,12 @@ If packets do not arrive, diagnose networking/SDK configuration. Do not disable 
    expected in that case. Do not move the robot merely to bypass this check.
 
 ```bash
-python -m deploy.run replay --input deploy/runs/TAKE/samples.jsonl --clip walk1_subject1
-python -m deploy.run shadow --interface ACTUAL_INTERFACE --clip walk1_subject1 --seconds 5
+bash deploy/docker/run.sh replay --input /runs/TAKE/samples.jsonl --clip walk1_subject1
+bash deploy/docker/run.sh --robot shadow --interface ACTUAL_INTERFACE --clip walk1_subject1 --seconds 5
 ```
 
+Offline runs have no network access. `--robot` explicitly shares host networking for receive-only DDS.
+The container runs without privileged mode, with read-only code/config/weights and only results persisted to the host.
 Shadow keeps the robot under its existing controller. Inspect hypothetical targets, timing and any
 rejection reason. It cannot prove balance, tracking accuracy or physical motion success.
 

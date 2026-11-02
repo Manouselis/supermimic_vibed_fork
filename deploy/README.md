@@ -1,82 +1,128 @@
-# G1 / Thor deployment preparation
+# SuperMimic on G1 / Thor
 
-**Ready for offline tests and receive-only hardware checks. Motor execution is not implemented.**
+**Training happened on the laptop. Thor will run inference in our own Docker image.**
+The current software supports offline checks and receive-only hardware tests. Motor execution is not implemented.
 
-The runner uses the released checkpoint 40,000 and an explicitly selected reference clip.
-It does not replay raw joint angles or need the learned world model at inference time.
-All 40 references are packaged. None is cleared for physical execution.
+## How the learning works
 
-## Start here
+- **Policy:** the neural network choosing joint targets from robot feedback and the selected motion.
+- **Reference clip:** a recorded movement to imitate. One shared policy handles the 40 clips.
+- **Reward:** a score for matching body poses/velocities, moving smoothly and respecting joint limits.
+- **Episode:** one simulated tracking attempt, ending at failure, a time limit or the clip's end.
 
-- [TASKS_TO_RUN.md](TASKS_TO_RUN.md): exact next-session steps.
-- [AUDIT.md](AUDIT.md): observation contract, gaps and source references.
-- [config.yaml](config.yaml): paths, runtime selection and physical-review flags.
+Our training loop, in plain words:
 
-The current local bundle is `deploy/artifacts/g1-lafan1-040000/`, containing verified weights,
-40 motion CSVs, the model URDF and actuator metadata. Bundles and diagnostics are Git-ignored.
-Code travels through Git. Transfer the bundle separately because weights/motions are not Git source.
+1. Run the policy in the simulator. Save robot state, action and resulting next state in a replay buffer.
+2. Train a **world model** on that experience. It learns to predict how the robot responds to actions.
+3. Let the policy try short imagined sequences through this model. Calculate tracking reward for them.
+4. Adjust policy weights by differentiating through those predictions. A **critic** estimates reward
+   beyond the short imagined sequence. This implementation uses model-based policy optimization, not PPO.
+5. Collect more simulator experience and repeat. Evaluate saved checkpoints on complete clips separately.
 
-## Commands
+Training often starts partway through a clip and uses short episodes. Evaluation checks complete motions.
+The world model helps train the policy, but is not required to run it on the robot. Its predictions
+can be wrong, so policy improvements must be checked back in the physics simulator.
+See [train.py](../supermimic/train.py) and [mdp.py](../supermimic/mdp.py) for the implementation.
 
-Run from the repository root. Global options go **before** the command:
+## What runs on the robot
+
+Every **20 ms / 50 Hz**, the inference process:
+
+1. Reads joint angles/velocities and the pelvis IMU through native Unitree DDS.
+2. Builds the last 10 observations and the next 10 reference frames.
+3. Runs the frozen policy. It returns 29 actions, converted into joint-position targets.
+4. In the future motor runner, sends validated targets to the G1's low-level controllers.
+5. Reads the resulting feedback and repeats. No weights are updated on the robot.
+
+Currently, **shadow mode stops at calculating and logging targets**. The robot stays under its existing
+controller. Its previous predicted action is hypothetical because it was never applied.
+A faster command-transport loop, startup transition, controller handover and tested stop procedure
+still need implementation and approval before physical movement.
+
+## Docker isolation
+
+Our image is **`supermimic-g1-thor:dev`**. It contains Python, PyTorch, pinned SDK2 and CycloneDDS.
+No host pip/apt installs, host venv, CUDA replacement, daemon changes or robot-service changes are needed.
+Docker and, for GPU use, NVIDIA container support must already work on Thor. If missing, stop and review
+that prerequisite rather than modifying the default environment automatically.
+
+- Code, config and weights are read-only. Only project results are persisted to the host.
+  Temporary runtime/cache files stay in the container's ephemeral `/tmp`.
+- Offline commands use `--network none`. Only explicit `--robot` capture/shadow shares host networking for DDS.
+- Runs use your UID and drop Linux capabilities. They mount neither the host root filesystem nor
+  the Docker socket, and do not use privileged mode.
+- `--gpu` explicitly exposes the GPU. Docker still shares the host kernel/driver, so compatibility needs checking.
+- No ROS, Isaac Lab, world model or training process is needed inside the Thor deployment image.
+
+The pinned candidate base is NVIDIA PyTorch **26.03**, ARM64, CUDA **13.2**, Ubuntu **24.04**.
+Its ARM64 registry manifest was verified, but it has **not** been tested on this unconnected Thor.
+Confirm its actual driver/JetPack first. [NVIDIA release notes](https://docs.nvidia.com/deeplearning/frameworks/pytorch-release-notes/rel-26-03.html)
+and [Thor container guide](https://docs.nvidia.com/jetson/agx-thor-devkit/user-guide/latest/setup_cuda.html).
+
+## Build and run on Thor
+
+First follow [TASKS_TO_RUN.md](TASKS_TO_RUN.md) to inspect Thor and transfer this branch and the bundle.
+From the repository root on Thor, with Docker already available:
 
 ```bash
-python3 deploy/inspect_host.py                        # works before dependencies are installed
-python -m deploy.run check                           # file hashes and inference contract
-python -m deploy.run list-motions
-python -m deploy.run benchmark --samples 300          # laptop/Thor inference timing, not tracking
-python -m deploy.run --device cuda:0 benchmark        # only with a working compatible CUDA build
-python -m deploy.run capture --interface eth0 --seconds 10
-python -m deploy.run replay --input deploy/runs/TAKE/samples.jsonl --clip walk1_subject1
-python -m deploy.run shadow --interface eth0 --clip walk1_subject1 --seconds 5
+bash deploy/docker/build.sh
+bash deploy/docker/run.sh inspect
+bash deploy/docker/run.sh check
+bash deploy/docker/run.sh benchmark --samples 300
+# GPU access and CUDA operation are checked separately:
+bash deploy/docker/run.sh --gpu inspect
+bash deploy/docker/run.sh --gpu --device cuda:0 benchmark --samples 300
 ```
 
-Replace `eth0` with the inspected robot-network interface. No automatic interface/robot discovery.
-`capture` only records feedback. `replay` and `shadow` require the reviewed configuration flags.
-They reject mismatched starting posture, invalid inputs, unsupported IMU/AB frames, stale feedback,
-unsafe hypothetical targets and live deadline overruns. They do not correct or clip predictions.
-Each command saves `report.json`, plus `samples.jsonl` for live capture/shadow, in a new run directory.
-`COMPLETE` means that diagnostic finished. It does not mean the robot can safely execute a motion.
+CPU is the default. `build.sh` refuses a non-ARM64 host. A reviewed alternative base can be supplied
+with `THOR_BASE_IMAGE`; your image tag can be changed with `THOR_DEPLOY_IMAGE`. No `latest` base is selected silently.
 
-Shadow uses its previous **predicted, unapplied** action in the history. The real robot remains under
-its existing controller. This checks data plumbing and timing, not closed-loop motion quality.
-There is no `--execute`, command publisher, controller handover or automatic robot-mode change.
-
-## Dependencies
-
-Inference needs compatible PyTorch, NumPy, safetensors and PyYAML. Install the small dependencies
-with `python -m pip install -r deploy/requirements.txt` inside an isolated environment.
-The Torch build must match the actual Thor software stack. This requirements file deliberately
-does not replace PyTorch/CUDA. SDK2/CycloneDDS are only needed for `capture` and `shadow`.
-No ROS, Isaac Lab, MuJoCo, camera, TensorRT or ONNX is required on Thor for this version.
-
-## Rebuild a portable bundle
-
-Use the exact release and matching motion/model assets, not arbitrary replacement files:
+For robot feedback, replace the interface with the one found in the inventory:
 
 ```bash
-python -m deploy.run prepare \
-  --policy /absolute/published-policy-directory \
-  --motion-dir /absolute/lafan1_g1 \
-  --urdf /absolute/g1_29dof_rev_1_0.urdf \
-  --destination deploy/artifacts/g1-lafan1-040000
+bash deploy/docker/run.sh --robot capture --interface ACTUAL_INTERFACE --seconds 10
 ```
 
-Existing destinations are rejected. The original policy manifest and all 40 CSV hashes are checked.
-The bundle includes no robot meshes or simulator assets because hardware inference does not use them.
-Keep the source motion terms with any transferred bundle. See [release licensing](../docs/RELEASE_LICENSES.md).
-
-## Verification
+After checking the physical-review flags in [config.yaml](config.yaml):
 
 ```bash
-python -m unittest -v tools.test_deployment tools.test_policy_release
+bash deploy/docker/run.sh replay --input /runs/TAKE/samples.jsonl --clip walk1_subject1
+bash deploy/docker/run.sh --robot shadow --interface ACTUAL_INTERFACE --clip walk1_subject1 --seconds 5
+```
+
+`walk1_subject1` is a software example, not an approved first physical motion.
+`--gpu` and `--robot` must precede application options. CPU shadow needs only `--robot`.
+For a custom profile, use `run.sh --config /absolute/profile.yaml ...`.
+Config and weights mount at `/config/config.yaml` and `/bundle`. Results persist under host
+`deploy/runs/`, visible inside the container as `/runs/`. Override host paths with `THOR_BUNDLE` or `THOR_RUNS`.
+Each invocation creates a new result folder. No background service is installed. Ctrl+C stops diagnostics.
+
+Checks reject invalid mappings, unsupported IMU/AB frames, mismatched start poses, stale feedback,
+non-finite values, sudden/out-of-model hypothetical targets and missed deadlines. No targets are clipped silently.
+`COMPLETE` means that diagnostic completed, not that a physical motion is safe or accurate.
+
+## Files and verification
+
+- [AUDIT.md](AUDIT.md): exact inputs/actions, source references and remaining hardware gaps.
+- [VERIFIED.md](VERIFIED.md): measured local results, separate from untested Thor behavior.
+- `deploy/artifacts/g1-thor-pilot.tar.gz`: local 66.7 MiB transfer archive, weights plus all 40 references.
+- `deploy/run.py`: offline/capture/shadow CLI. `deploy/receiver.py` creates only a LowState subscriber.
+- `deploy/docker/`: separate Dockerfile and build/run wrappers. The existing laptop training Dockerfile is unchanged.
+
+All 40 references are packaged, but none is approved for physical execution. Their initial velocities
+are nonzero. Simulation can initialize those states directly; the physical robot needs a reviewed transition.
+All 40 completed local simulation tests, with self-collisions disabled. That is not hardware validation.
+
+To reproduce local verification in the laptop simulator environment:
+
+```bash
+python -m unittest -v tools.test_deployment tools.test_deployment_docker tools.test_policy_release
 python supermimic/evaluate.py --run_dir deploy/runs/sim-check \
   --ckpt deploy/artifacts/g1-lafan1-040000/policy --deployment-check \
   --result-json deploy/runs/sim-check/evaluation.json
 ```
 
-The second command runs on the existing **laptop simulator**, with the usual simulator assets installed.
-It drives all 40 simulated robots through the deployment adapter and compares every step against
-the original pipeline. Do not install the x86 simulator Docker image on Thor.
-Tests using real artifacts are explicitly skipped if the bundle is absent. Set `ORIGINAL_CHECKPOINT`
-to the original `.pt` file to also compare every released tensor with its source.
+The second command is laptop simulation only. It compares the adapter with the original pipeline each step.
+On a laptop, direct `python -m deploy.run ...` commands remain available in a suitable local environment.
+For rebuilding bundles, run `python -m deploy.run prepare --help`. Source hashes and matching model/40 CSVs
+are mandatory. Keep the [motion attribution and licence terms](../docs/RELEASE_LICENSES.md) with the bundle.

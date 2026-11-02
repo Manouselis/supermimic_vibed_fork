@@ -1,4 +1,4 @@
-# Install a Thor-compatible PyTorch build separately. Do not replace its NVIDIA stack blindly.
+# Installed inside our Docker image. The reviewed NVIDIA base already provides PyTorch.
 numpy>=1.26,<3
 safetensors>=0.5,<1
 PyYAML>=6,<7

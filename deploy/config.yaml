@@ -1,4 +1,5 @@
-# All paths are relative to this YAML file. CLI values override these settings.
+# Local paths are relative to this YAML file. CLI values override these settings.
+# The Docker wrapper mounts this file read-only and overrides bundle with /bundle.
 bundle: artifacts/g1-lafan1-040000
 device: cpu               # Start with CPU. Use cuda:0 only after inspect/benchmark passes.
 threads: 1                # PyTorch CPU threads. Benchmark the actual Thor, not the laptop.

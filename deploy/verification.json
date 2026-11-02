@@ -98,5 +98,27 @@
     "torch": "2.11.0+cu130",
     "numpy": "2.5.1",
     "safetensors": "0.8.0"
+  },
+  "docker_verification": {
+    "scope": "Local x86_64 build and execution. Thor ARM64 build/hardware still untested.",
+    "tests_passed": 33,
+    "tests_skipped": 0,
+    "test_image": "supermimic-thor-container-test:dev",
+    "test_base": "supermimic:latest (existing local x86_64 PyTorch runtime)",
+    "production_candidate_base": "nvcr.io/nvidia/pytorch:26.03-py3@sha256:9b1b9d6477afce05a5e941a3711093366b43de1b4eb7c1963251ade6a07c34fe",
+    "production_base_arm64_manifest_verified": true,
+    "native_cyclonedds": "0.10.5",
+    "python_cyclonedds": "0.10.2",
+    "native_sdk_checks": "CRC computation and receive-only DDS initialization passed in isolated loopback",
+    "production_profile_checks": [
+      "bundle check",
+      "CPU inference",
+      "CUDA inference"
+    ],
+    "restrictions": "read-only root/config/bundle, non-root UID, capabilities dropped, no network; results directory writable",
+    "test_harness_note": "Mock executable scripts require exec on test-only tmpfs. Production tmpfs stays noexec.",
+    "host_package_installs": false,
+    "robot_connected": false,
+    "motor_commands_sent": false
   }
 }
